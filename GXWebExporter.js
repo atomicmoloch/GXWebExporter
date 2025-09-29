@@ -44,26 +44,22 @@
         const header = `<svg xmlns="http://www.w3.org/2000/svg" width="${state.cWidth}" height="${state.cHeight}" viewBox="0 0 ${state.cWidth} ${state.cHeight}">\n`;
         let body = '';
         for (let o of state.objects) {
-            switch(o.type) {
-                case 0: //path
-                    const attrs = [];
-                    const data = o.path.join(' ');
-                    if (o.strokeStyle) {
-                        attrs.push(`stroke="${o.strokeStyle}"`);
-                        attrs.push(`stroke-width="${o.lineWidth || 1}"`);
-                        if (o.lineJoin) attrs.push(`stroke-linejoin="${o.lineJoin}"`);
-                        if (o.lineCap) attrs.push(`stroke-linecap="${o.lineCap}"`);
-                    } else {
-                        attrs.push('stroke="none"');
-                    }
-                    if (o.fillStyle) {
-                        attrs.push(`fill="${o.fillStyle}"`);
-                    } else {
-                        attrs.push('fill="none"');
-                    }
-                    body += `<path d="${data}" ${attrs.join(' ')} />\n`;
-                    break;
+            const attrs = [];
+            const data = o.path.join(' ');
+            if (o.strokeStyle) {
+                attrs.push(`stroke="${o.strokeStyle}"`);
+                attrs.push(`stroke-width="${o.lineWidth || 1}"`);
+                if (o.lineJoin) attrs.push(`stroke-linejoin="${o.lineJoin}"`);
+                if (o.lineCap) attrs.push(`stroke-linecap="${o.lineCap}"`);
+            } else {
+                attrs.push('stroke="none"');
             }
+            if (o.fillStyle) {
+                attrs.push(`fill="${o.fillStyle}"`);
+            } else {
+                attrs.push('fill="none"');
+            }
+            body += `<path d="${data}" ${attrs.join(' ')} />\n`;
         }
         const footer = '</svg>';
 
@@ -153,7 +149,7 @@
                     console.log("[GXWebExporter] stroke");
                     if (!(ctx.strokeStyle == "#ffa500")) {
                         state.objects.push({
-                            type: 0,
+                        //    type: 0,
                             path: state.currentPath.slice(), // shallow copy
                             strokeStyle: ctx.strokeStyle, //pass by primitive (snapshots current stroke style)
                             lineWidth: ctx.lineWidth,
@@ -209,7 +205,7 @@
                 ctx.fill = function() {
                     console.log("[GXWebExporter] fill");
                     state.objects.push({
-                        type: 0,
+                    //    type: 0,
                         path: state.currentPath.slice(),
                         strokeStyle: null,
                         lineWidth: null,
