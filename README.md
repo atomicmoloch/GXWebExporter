@@ -2,4 +2,4 @@
 
 A simple userscript for exporting creations made in Saltire Software's GXWeb as SVG files. It primarily works by patching `CanvasRenderingContext2D` methods.
 
-Tested using TamperMonkey, though I don't see any reason that it wouldn't work in other major userscript managers.
+Currently, I've only tested it using TamperMonkey, though there isn't anything TamperMonkey-specific in it.
