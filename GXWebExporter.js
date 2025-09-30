@@ -44,22 +44,32 @@
         const header = `<svg xmlns="http://www.w3.org/2000/svg" width="${state.cWidth}" height="${state.cHeight}" viewBox="0 0 ${state.cWidth} ${state.cHeight}">\n`;
         let body = '';
         for (let o of state.objects) {
-            const attrs = [];
-            const data = o.path.join(' ');
-            if (o.strokeStyle) {
-                attrs.push(`stroke="${o.strokeStyle}"`);
-                attrs.push(`stroke-width="${o.lineWidth || 1}"`);
-                if (o.lineJoin) attrs.push(`stroke-linejoin="${o.lineJoin}"`);
-                if (o.lineCap) attrs.push(`stroke-linecap="${o.lineCap}"`);
-            } else {
+            if (o.type == 0) { //Path bitflag
+                const attrs = [];
+                const data = o.path.join(' ');
+                if (o.strokeStyle) {
+                    attrs.push(`stroke="${o.strokeStyle}"`);
+                    attrs.push(`stroke-width="${o.lineWidth || 1}"`);
+                    if (o.lineJoin) attrs.push(`stroke-linejoin="${o.lineJoin}"`);
+                    if (o.lineCap) attrs.push(`stroke-linecap="${o.lineCap}"`);
+                } else {
+                    attrs.push('stroke="none"');
+                }
+                if (o.fillStyle) {
+                    attrs.push(`fill="${o.fillStyle}"`);
+                } else {
+                    attrs.push('fill="none"');
+                }
+                body += `<path d="${data}" ${attrs.join(' ')} />\n`;
+            }
+            else if (o.type == 1) { //Text bitflag
+                const attrs = [];
+                attrs.push(`x="${o.x}"`);
+                attrs.push(`y="${o.y}"`);
                 attrs.push('stroke="none"');
-            }
-            if (o.fillStyle) {
                 attrs.push(`fill="${o.fillStyle}"`);
-            } else {
-                attrs.push('fill="none"');
+                body += `<text ${attrs.join(' ')}>${o.text}</text>`;
             }
-            body += `<path d="${data}" ${attrs.join(' ')} />\n`;
         }
         const footer = '</svg>';
 
@@ -115,6 +125,7 @@
                 const origStroke = ctx.stroke;
                 const origArc = ctx.arc;
                 const origFill = ctx.fill;
+                const origFillText = ctx.fillText
 
                 //resets state on clearRect and sets canvas height and width
                 ctx.clearRect = function(x, y, w, h) {
@@ -122,7 +133,7 @@
                     state.cWidth = w;
                     state.cHeight = h;
                     state.currentPath = [];
-                    state.path = [];
+                    state.objects = [];
                     return origClearRect.apply(this, arguments);
                 };
 
@@ -147,18 +158,16 @@
 
                 ctx.stroke = function() {
                     console.log("[GXWebExporter] stroke");
-                    if (!(ctx.strokeStyle == "#ffa500")) {
-                        state.objects.push({
-                        //    type: 0,
-                            path: state.currentPath.slice(), // shallow copy
-                            strokeStyle: ctx.strokeStyle, //pass by primitive (snapshots current stroke style)
-                            lineWidth: ctx.lineWidth,
-                            lineJoin: ctx.lineJoin,
-                            lineCap: ctx.lineCap,
-                            lineDash: ctx.getLineDash(), //handle later
-                            fillStyle: null,
-                        });
-                    }
+                    state.objects.push({
+                        type: 0,
+                        path: state.currentPath.slice(), // shallow copy
+                        strokeStyle: ctx.strokeStyle, //pass by primitive (snapshots current stroke style)
+                        lineWidth: ctx.lineWidth,
+                        lineJoin: ctx.lineJoin,
+                        lineCap: ctx.lineCap,
+                        lineDash: ctx.getLineDash(), //handle later
+                        fillStyle: null,
+                    });
                     state.currentPath = [];
                     return origStroke.apply(this, arguments);
                 };
@@ -205,7 +214,7 @@
                 ctx.fill = function() {
                     console.log("[GXWebExporter] fill");
                     state.objects.push({
-                    //    type: 0,
+                        type: 0,
                         path: state.currentPath.slice(),
                         strokeStyle: null,
                         lineWidth: null,
@@ -216,6 +225,18 @@
                     state.currentPath = [];
                     return origFill.apply(this, arguments);
                 };
+
+                ctx.fillText = function(text, x, y) {
+                    console.log("[GXWebExporter] fillText:", text, x, y);
+                    state.objects.push({
+                        type: 1,
+                        text: text,
+                        x: x,
+                        y: y,
+                        fillStyle: ctx.fillStyle,
+                    });
+                    return origFillText.apply(this, arguments);
+                }
 
                 ctx._patched = true;
             }
@@ -228,53 +249,40 @@
  *
  * FUNCTION:     InitExportButton
  *
- * DESCRIPTION:  Creates subwindow with export button on page
+ * DESCRIPTION:  Creates export button to the right of help button
  *
  ***********************************************************************/
     function InitExportButton() {
-        if (document.getElementById('_gxwebexport_toolbar')) return;
+        if (document.getElementById('export-svg-button')) return;
 
-        const toolbar = document.createElement('div');
-        toolbar.id = '_gxweb_export_toolbar';
-        toolbar.style.position = 'fixed';
-        toolbar.style.bottom = '12px';
-        toolbar.style.right = '12px';
-        toolbar.style.zIndex = 999;
-
-        toolbar.style.background = 'rgba(245,245,245,0.75)';
-        toolbar.style.border = '1px solid rgba(136,136,136,0.75)';
-        toolbar.style.borderRadius = '6px';
-        toolbar.style.boxShadow = '0 4px 12px rgba(0,0,0,0.12)';
-        toolbar.style.padding = '8px';
-        toolbar.style.fontFamily = 'Lucida Sans,Lucida Sans Regular,Lucida Grande,Lucida Sans Unicode,Geneva,Verdana,sans-serif';
-        toolbar.style.fontSize = '16px';
-        toolbar.style.fontWeight = 'lighter';
-        toolbar.style.color = '#111';
-
-        const title = document.createElement('div');
-        title.textContent = 'GXWeb Exporter';
-        title.style.marginBottom = '6px';
-
+        const toolbar = document.querySelector("#toolbars .toolbar.right-justified");
         const exportBtn = document.createElement('button');
+
+        exportBtn.id = 'export-svg-button';
         exportBtn.textContent = 'Export SVG';
-        exportBtn.style.padding = '6px 10px';
-        exportBtn.style.border = 'none';
-        exportBtn.style.borderRadius = '4px';
+        exportBtn.style.height = '48px';
+        exportBtn.style.padding = '0px 6px';
+        exportBtn.style.boxSizing = 'border-box';
         exportBtn.style.cursor = 'pointer';
         exportBtn.style.background = '#3E9BD5';
         exportBtn.style.color = 'white';
+        exportBtn.style.fontFamily = 'Lucida Sans,Lucida Sans Regular,Lucida Grande,Lucida Sans Unicode,Geneva,Verdana,sans-serif';
         exportBtn.onclick = () => {
             try {
-                DownloadSvg();
+                const btn = document.querySelector("#select-button");
+                btn.dispatchEvent(new MouseEvent("click", {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                })); //tries to ensure mouse is in selection mode to get rid of stray points
+                setTimeout(DownloadSvg(), 20000);
             } catch (err) {
                 console.error('[GXWebExporter] Export failed: ', err);
                 alert('Export failed: ' + err.message);
             }
         };
 
-        toolbar.appendChild(title);
         toolbar.appendChild(exportBtn);
-        document.body.appendChild(toolbar);
     }
 
 /***********************************************************************
@@ -289,8 +297,11 @@
         InitExportButton();
     }
 
-    // Initializes with a slight delay to ensure it's loaded last
-    // Probably unnecessary
-    setTimeout(Init, 300);
+    // Boilerplate code to initialize after DOM is loaded
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        setTimeout(Init, 300);
+    } else {
+        window.addEventListener('DOMContentLoaded', Init);
+    }
 
 })();
