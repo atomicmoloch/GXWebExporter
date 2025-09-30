@@ -17,8 +17,8 @@
     const state = {
         cWidth: 0,
         cHeight: 0,
-        objects: [],
-        currentPath: [],
+        objects: [],        //Holds drawn objects
+        currentPath: [],    //Holds yet-undrawn objects
     }
 
 /***********************************************************************
@@ -50,8 +50,8 @@
                 if (o.strokeStyle) {
                     attrs.push(`stroke="${o.strokeStyle}"`);
                     attrs.push(`stroke-width="${o.lineWidth || 1}"`);
-                    if (o.lineJoin) attrs.push(`stroke-linejoin="${o.lineJoin}"`);
-                    if (o.lineCap) attrs.push(`stroke-linecap="${o.lineCap}"`);
+                    attrs.push(`stroke-linejoin="${o.lineJoin}"`);
+                    attrs.push(`stroke-linecap="${o.lineCap}"`);
                 } else {
                     attrs.push('stroke="none"');
                 }
@@ -94,7 +94,7 @@
         const a = document.createElement('a');
 
         a.href = url;
-        a.download = `gxweb_export${now.toString()}.svg`;
+        a.download = `gxweb_export${now.toISOString()}.svg`;
         document.body.appendChild(a);
         a.click();
         a.remove();
@@ -172,6 +172,8 @@
                     return origStroke.apply(this, arguments);
                 };
 
+                // Converts arc from canvas representation (center coord, radius, start and end angles, counterclockwise flag)
+                // to SVG representation (radius x and y, large arc flag, sweep flag, destination x and y)
                 ctx.arc = function(x, y, r, startAngle, endAngle, counterclockwise) {
                     console.log("[GXWebExporter] arc:", x, y, r, startAngle, endAngle, counterclockwise);
 
@@ -249,7 +251,7 @@
  *
  * FUNCTION:     InitExportButton
  *
- * DESCRIPTION:  Creates export button to the right of help button
+ * DESCRIPTION:  Creates export button to the right of help button on toolbar
  *
  ***********************************************************************/
     function InitExportButton() {
