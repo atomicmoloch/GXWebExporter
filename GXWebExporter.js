@@ -32,6 +32,29 @@
         return Number.parseFloat(n).toFixed(4).replace(/\.?0+$/, '');
     }
 
+/***********************************************************************
+ *
+ * FUNCTION:     AddMathQuillText
+ *
+ * DESCRIPTION:  Adds labels rendered using MathQuill DOM elements
+ *
+ ***********************************************************************/
+    function AddMathQuillText() {
+        const labels = Array.from(document.querySelectorAll(".mq-root-block"));
+        for (let l of labels) {
+            const position = l.getBoundingClientRect();
+            const x = position.x;
+            const y = position.y - (position.height * 1.5); //estimated visual offset
+            state.objects.push({
+                type: 1,
+                text: l.innerText, //raw text of MathQuill equation
+                x: x,
+                y: y,
+                fillStyle: "black",
+            });
+        }
+    }
+
 
 /***********************************************************************
  *
@@ -271,13 +294,8 @@
         exportBtn.style.fontFamily = 'Lucida Sans,Lucida Sans Regular,Lucida Grande,Lucida Sans Unicode,Geneva,Verdana,sans-serif';
         exportBtn.onclick = () => {
             try {
-                const btn = document.querySelector("#select-button");
-                btn.dispatchEvent(new MouseEvent("click", {
-                    bubbles: true,
-                    cancelable: true,
-                    view: window
-                })); //tries to ensure mouse is in selection mode to get rid of stray points
-                setTimeout(DownloadSvg(), 20000);
+                AddMathQuillText();
+                DownloadSvg();
             } catch (err) {
                 console.error('[GXWebExporter] Export failed: ', err);
                 alert('Export failed: ' + err.message);
